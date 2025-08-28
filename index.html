@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Лична Призма – Блог</title>
   <meta name="description" content="Личен блог – публикации, теми, архив и автор." />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
   <style>
     /* ==========================
        БАЗОВ СТИЛ + ТЕМА
-       Всичко е в един файл за лесно тестване
        ========================== */
     :root{
       --bg: #ffffff;
@@ -140,18 +140,86 @@
        ========================== */
     main#app{ display:grid; gap: 16px; }
 
-    .post-card{
-      background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
-      overflow:hidden; box-shadow: var(--shadow);
+    .post-card {
+      display: flex;
+      gap: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
     }
-    .post-media{ width:100%; aspect-ratio: 16/9; object-fit: cover; background:#ddd }
-    .post-body{ padding: 14px 16px 16px; }
-    .post-body h2{ margin-top:.1rem }
-    .post-actions{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding: 0 16px 16px; }
-    .chip{ padding:6px 10px; border:1px solid var(--border); border-radius: 999px; font-size:.92rem; }
+    .post-card .post-media-container {
+      flex-shrink: 0;
+      width: 220px;
+      border-right: 1px solid var(--border);
+    }
+    .post-card .post-media {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .post-card .post-body {
+      flex-grow: 1;
+      padding: 14px 16px 14px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .post-card .post-body h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+    .post-card .post-body p {
+      margin-bottom: 0;
+    }
+    .post-card .post-actions {
+      padding: 0;
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .post-card {
+        flex-direction: column;
+        gap: 0;
+      }
+      .post-card .post-media-container {
+        width: 100%;
+        height: 180px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+       .post-card .post-body {
+        padding: 14px 16px;
+      }
+    }
+
+    .chip{ padding:6px 12px; border:1px solid var(--border); border-radius: 999px; font-size:.92rem; }
+    
+    .toggle-list-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--ink-muted);
+        cursor: pointer;
+        font-size: 0.9em;
+        padding: 6px 12px;
+        margin-top: 12px;
+        width: 100%;
+        text-align: center;
+        transition: background .2s, border-color .2s;
+    }
+    .toggle-list-btn:hover {
+        background: var(--accent);
+        border-color: var(--brand);
+    }
 
     .pagination{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding: 12px 0 0; border-top: 1px dashed var(--border); }
     .pagination .pages{ display:flex; gap:6px; flex-wrap:wrap }
+    .pagination .pages span { padding: 6px 0; }
     .pagination a{ padding:6px 10px; border-radius: 8px; border:1px solid var(--border); }
     .pagination a[aria-current="page"]{ background: var(--brand); color:white; border-color: transparent; }
 
@@ -217,14 +285,16 @@
       </section>
 
       <!-- Автор -->
-      <section class="card" aria-labelledby="author-h">
+      <section class="card" aria-labelledby="author-h" id="author-card">
         <div class="card-h" id="author-h">За автора</div>
         <div class="card-c">
           <div class="author">
             <img src="https://picsum.photos/200?random=3" alt="Автор – профилна снимка" />
             <div>
               <strong>Автор: Иван Петров</strong><br />
-              <small>Пише за лични прозрения, технологии и общество. Тук ще намерите подбрани теми и архив от публикации.</small>
+              <small>I am a blogger, Zumba lover, wine admirer, mom, free-spirited, and a thinking woman.
+                <a href="https://www.youtube.com/channel/UCkJwJyPNLu7zMseDETu7TJw" target="_blank" rel="noopener">YouTube</a>
+              </small>           
             </div>
           </div>
         </div>
@@ -240,292 +310,363 @@
   <script>
     /**
      * ==============================================
-     * ДАННИ (примерни) – заменете със свои реални
+     * ГЛОБАЛНИ ПРОМЕНЛИВИ И КОНФИГУРАЦИЯ
      * ==============================================
      */
-    const POSTS = [
-      {
-        id: 1,
-        title: "Добре дошли в 'Лична Призма'",
-        date: "2025-08-15",
-        tags: ["Лични", "Новини"],
-        cover: "https://picsum.photos/1280/720?random=11",
-        excerpt: "Започвам този блог с идеята да събера на едно място бележки, есета и снимки от ежедневието.",
-        html: `<p>Това е първата публикация в блога. Идеята е да събирам наблюдения от ежедневието, кратки размишления за технологии и общество, както и фото бележки. Ако искате да следите новите публикации, добавете страницата в отметките си.</p>
-               <p>Блогът е изграден като еднофайловa HTML страница с вграден JavaScript, за лесно тестване и миграция.</p>`
-      },
-      {
-        id: 2,
-        title: "Снимки от утринната разходка",
-        date: "2025-07-30",
-        tags: ["Снимки", "Лични"],
-        cover: "https://picsum.photos/1280/720?random=12",
-        excerpt: "Спокойствието на ранното утро и играта на светлина.",
-        html: `<p>Няколко момента, уловени по време на ранната разходка: светлина, сенки, отражения. Тук са някои от кадрите.</p>
-               <figure><img src="https://picsum.photos/1000/600?random=112" alt="Снимка 1"/></figure>
-               <figure><img src="https://picsum.photos/1000/600?random=113" alt="Снимка 2"/></figure>`
-      },
-      {
-        id: 3,
-        title: "Бележки за четене през август",
-        date: "2025-07-18",
-        tags: ["Книги"],
-        cover: "https://picsum.photos/1280/720?random=13",
-        excerpt: "Кратък списък с книги и статии, които ми бяха полезни.",
-        html: `<p>Списъкът включва есеистика и научно-популярни заглавия. Записките ми са лични и кратки, но може да са полезни.</p>`
-      },
-      {
-        id: 4,
-        title: "Малка градска история",
-        date: "2025-06-05",
-        tags: ["Есе", "Град"],
-        cover: "https://picsum.photos/1280/720?random=14",
-        excerpt: "Кратък разказ за неочаквана среща на спирката.",
-        html: `<p>В един дъждовен следобед, спирката се превърна в сцена за съвсем човешки разговор...</p>`
-      },
-      {
-        id: 5,
-        title: "Техническа бележка: Минимален блог без бекенд",
-        date: "2025-05-22",
-        tags: ["Технологии", "Web"],
-        cover: "https://picsum.photos/1280/720?random=15",
-        excerpt: "Как е направена тази страница – SPA навигация, коментари в localStorage и архив по месеци.",
-        html: `<p>Този блог е реализиран като SPA (Single Page Application) без външни зависимости. Навигацията използва hash-базиран рутер (<code>#post/ID</code>, <code>#page/N</code>),
-              а коментарите се пазят локално в браузъра чрез <code>localStorage</code>.</p>`
-      },
-      {
-        id: 6,
-        title: "Снимка на деня",
-        date: "2025-05-10",
-        tags: ["Снимки"],
-        cover: "https://picsum.photos/1280/720?random=16",
-        excerpt: "Кадър, който ме усмихна.",
-        html: `<p>Понякога една снимка казва повече от хиляди думи. Ето я:</p>
-               <figure><img src="https://picsum.photos/1000/600?random=116" alt="Кадър"/></figure>`
-      },
-      {
-        id: 7,
-        title: "Уикенд маршрут",
-        date: "2025-04-28",
-        tags: ["Пътуване"],
-        cover: "https://picsum.photos/1280/720?random=17",
-        excerpt: "Кратка пътека близо до града.",
-        html: `<p>Маршрутът е приятен и лек, подходящ за къс следобед. Носете вода и леко яке.</p>`
-      },
-      {
-        id: 8,
-        title: "Записки за вниманието",
-        date: "2025-04-10",
-        tags: ["Есе"],
-        cover: "https://picsum.photos/1280/720?random=18",
-        excerpt: "Какво означава да си наистина внимателен в ежедневието.",
-        html: `<p>Вниманието е ограничен ресурс. Тук са моите начини да го пазя.</p>`
-      },
-      {
-        id: 9,
-        title: "Музикална пауза",
-        date: "2025-03-02",
-        tags: ["Музика"],
-        cover: "https://picsum.photos/1280/720?random=19",
-        excerpt: "Албум, към който често се връщам.",
-        html: `<p>Няколко любими парчета и защо ги харесвам.</p>`
-      },
-      {
-        id: 10,
-        title: "Една идея за снимка",
-        date: "2025-02-14",
-        tags: ["Снимки", "Идеи"],
-        cover: "https://picsum.photos/1280/720?random=20",
-        excerpt: "Серия от кадри с повторяем мотив.",
-        html: `<p>Идеята е да търсим повторение на форми в градската среда.</p>`
-      },
-      {
-        id: 11,
-        title: "Архивни бележки",
-        date: "2024-12-01",
-        tags: ["Архив"],
-        cover: "https://picsum.photos/1280/720?random=21",
-        excerpt: "Събрах някои по-стари чернови и снимки.",
-        html: `<p>Архивът е полезен за проследяване на идеи във времето.</p>`
-      },
-      {
-        id: 12,
-        title: "Още снимки",
-        date: "2024-10-05",
-        tags: ["Снимки"],
-        cover: "https://picsum.photos/1280/720?random=22",
-        excerpt: "Есенни цветове и тихи улици.",
-        html: `<p>Ето още няколко кадъра от есента.</p>
-               <figure><img src="https://picsum.photos/1000/600?random=122" alt="Есен"/></figure>`
-      }
-    ];
-
-    /** Форматиране на дата (bg) */
-    const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('bg-BG', { day:'2-digit', month:'long', year:'numeric' });
-
-    /** Четимо извадка от HTML */
-    function toExcerpt(html, max=180){
-      const text = html.replace(/<[^>]+>/g, '').replace(/\s+/g,' ').trim();
-      return text.length > max ? text.slice(0, max-1).trim() + '…' : text;
-    }
-
-    /** Данни за тагове и архив */
-    function computeTaxonomies(posts){
-      const tags = new Map();
-      const archive = new Map(); // key: YYYY-MM
-      for(const p of posts){
-        (p.tags||[]).forEach(t=> tags.set(t, (tags.get(t)||0)+1));
-        const ym = p.date.slice(0,7);
-        archive.set(ym, (archive.get(ym)||0)+1);
-      }
-      // сортиране по име / по дата
-      return {
-        tags: [...tags.entries()].sort((a,b)=> a[0].localeCompare(b[0],'bg')),
-        archive: [...archive.entries()].sort((a,b)=> b[0].localeCompare(a[0]))
-      }
-    }
-
-    /** Рендер – лява колона */
-    function renderSidebar(posts){
-      // Някои публикации (последните 6)
-      const side = document.getElementById('side-latest');
-      side.innerHTML = posts.slice(0,6).map(p=>`
-        <article class="mini-post">
-          <a href="#post/${p.id}" data-link>
-            <img src="${p.cover||'https://picsum.photos/300?grayscale'}" alt="${escapeHtml(p.title)}" loading="lazy" />
-          </a>
-          <div>
-            <a class="mini-title" href="#post/${p.id}" data-link>${escapeHtml(p.title)}</a>
-            <div class="meta">${fmtDate(p.date)}</div>
-          </div>
-        </article>
-      `).join('');
-
-      const { tags, archive } = computeTaxonomies(posts);
-
-      // Теми
-      const tcloud = document.getElementById('tag-cloud');
-      tcloud.innerHTML = tags.map(([t,c])=>`<a class="tag" href="#tag/${encodeURIComponent(t)}" data-link>${escapeHtml(t)} <span class="count">(${c})</span></a>`).join('');
-
-      // Архив (YYYY-MM → Човешки месец)
-      const alist = document.getElementById('archive-list');
-      alist.innerHTML = archive.map(([ym,c])=>{
-        const [y,m] = ym.split('-');
-        const d = new Date(`${ym}-01T00:00:00`);
-        const label = d.toLocaleDateString('bg-BG', { month:'long', year:'numeric' });
-        return `<li><a href="#archive/${ym}" data-link><span>${label}</span><span class="muted">${c}</span></a></li>`
-      }).join('');
-    }
-
-    /** Домашен изглед (последни 5, с пагинация) */
     const PAGE_SIZE = 5;
-    function renderHome(page=1, list=POSTS){
+    let ALL_POSTS = []; // Глобален кеш за всички публикации
+
+    const BLOGGER_URL = "https://www.lichna-prizma.eu/"; 
+
+    /**
+     * ==============================================
+     * ОСНОВНА ЛОГИКА
+     * ==============================================
+     */
+
+    async function init() {
+      document.getElementById('app').setAttribute('aria-busy', 'true');
+      try {
+        const { posts, author } = await fetchPosts();
+        ALL_POSTS = posts.slice().sort((a, b) => b.date.localeCompare(a.date));
+        renderSidebar(ALL_POSTS);
+        renderAuthor(author);
+        router();
+      } catch (err) {
+        console.error("Грешка при зареждане на публикациите:", err);
+        document.getElementById('app').innerHTML = "<p>Възникна грешка при зареждане на съдържанието. Моля, опитайте по-късно.</p>";
+      } finally {
+        document.getElementById('app').setAttribute('aria-busy', 'false');
+      }
+    }
+
+    async function fetchPosts() {
+      const callbackName = 'jsonpCallback' + Date.now();
+      const script = document.createElement('script');
+      
+      return new Promise((resolve, reject) => {
+        window[callbackName] = (json) => {
+          if (!json.feed || !json.feed.entry) {
+            console.error("Грешен формат на JSON отговора", json);
+            reject(new Error('Невалиден формат на данните от Blogger.'));
+            return;
+          }
+          const posts = json.feed.entry.map(entry => {
+            const id = entry.id.$t.split('.post-')[1];
+            const linkObj = entry.link.find(l => l.rel === 'alternate');
+            const url = linkObj ? linkObj.href : null;
+            const coverMatch = entry.content && entry.content.$t ? entry.content.$t.match(/<img[^>]+src="([^">]+)"/) : null;
+            const cover = entry.media$thumbnail ? entry.media$thumbnail.url : (coverMatch ? coverMatch[1] : null);
+
+            return {
+              id: id,
+              title: entry.title.$t,
+              date: entry.published.$t.slice(0, 10),
+              tags: (entry.category || []).map(c => c.term),
+              html: entry.content ? DOMPurify.sanitize(entry.content.$t) : '',
+              cover: cover,
+              excerpt: toExcerpt(entry.content?.$t, 150),
+              url: url
+            };
+          });
+          
+          const author = {
+              name: json.feed.author[0].name.$t,
+              avatar: json.feed.author[0].gd$image.src
+          };
+
+          resolve({ posts, author });
+
+          delete window[callbackName];
+          document.head.removeChild(script);
+        };
+
+        script.src = `${BLOGGER_URL}/feeds/posts/default?alt=json-in-script&callback=${callbackName}&max-results=500`;
+        script.onerror = () => {
+            reject(new Error('Неуспешно зареждане на скрипта за публикации.'));
+            delete window[callbackName];
+            document.head.removeChild(script);
+        };
+        
+        document.head.appendChild(script);
+      });
+    }
+
+    /**
+     * ==============================================
+     * РЕНДЪР ФУНКЦИИ (UI)
+     * ==============================================
+     */
+
+    const fmtDate = (iso) => new Date(iso).toLocaleDateString('bg-BG', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    function toExcerpt(html, max = 180) {
+      if (!html) return '';
+      const text = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      return text.length > max ? text.slice(0, max - 1).trim() + '…' : text;
+    }
+
+    function computeTaxonomies(posts) {
+      const tags = new Map();
+      const archive = new Map();
+      for (const p of posts) {
+        (p.tags || []).forEach(t => tags.set(t, (tags.get(t) || 0) + 1));
+        const ym = p.date.slice(0, 7);
+        archive.set(ym, (archive.get(ym) || 0) + 1);
+      }
+      return {
+        tags: [...tags.entries()].sort((a, b) => b[1] - a[1]),
+        archive: [...archive.entries()].sort((a, b) => b[0].localeCompare(a[0]))
+      };
+    }
+
+    function renderSidebar(posts) {
+        const SIDE_POST_LIMIT = 6;
+        const TAG_LIMIT = 5;
+        const ARCHIVE_LIMIT = 5;
+
+        const side = document.getElementById('side-latest');
+        if (side) {
+            side.innerHTML = posts.slice(0, SIDE_POST_LIMIT).map(p => {
+                const imageUrl = p.cover ? p.cover.replace(/\/s\d+(-c)?\//, '/s72-c/') : 'https://picsum.photos/72?grayscale';
+                return `
+                <article class="mini-post">
+                  <a href="#post/${p.id}" data-link>
+                    <img src="${imageUrl}" alt="${escapeHtml(p.title)}" loading="lazy" />
+                  </a>
+                  <div>
+                    <a class="mini-title" href="#post/${p.id}" data-link>${escapeHtml(p.title)}</a>
+                    <div class="meta">${fmtDate(p.date)}</div>
+                  </div>
+                </article>
+              `
+            }).join('');
+        }
+
+        const { tags, archive } = computeTaxonomies(posts);
+
+        const tcloud = document.getElementById('tag-cloud');
+        if (tcloud) {
+            const tagRenderer = ([t, c], index) => {
+                const isHidden = index >= TAG_LIMIT;
+                return `<a class="tag sidebar-item ${isHidden ? 'hidden-item' : ''}" href="#tag/${encodeURIComponent(t)}" data-link style="${isHidden ? 'display:none;' : ''}">${escapeHtml(t)} <span class="count">(${c})</span></a>`;
+            };
+            let tagsHtml = tags.map(tagRenderer).join('');
+            if (tags.length > TAG_LIMIT) {
+                tagsHtml += `<button class="toggle-list-btn" data-target-selector=".sidebar-item.hidden-item" data-container="tag-cloud" data-total="${tags.length}" data-show-text="Покажи всички" data-hide-text="Покажи по-малко">Покажи всички (${tags.length})</button>`;
+            }
+            tcloud.innerHTML = tagsHtml;
+        }
+
+        const alist = document.getElementById('archive-list');
+        if (alist) {
+            const archiveRenderer = ([ym, c], index) => {
+                const d = new Date(`${ym}-01T12:00:00Z`);
+                const label = d.toLocaleDateString('bg-BG', { month: 'long', year: 'numeric' });
+                const isHidden = index >= ARCHIVE_LIMIT;
+                return `<li class="archive-item ${isHidden ? 'hidden-item' : ''}" style="${isHidden ? 'display:none;' : ''}"><a href="#archive/${ym}" data-link><span>${label}</span><span class="muted">${c}</span></a></li>`;
+            };
+            let archiveHtml = archive.map(archiveRenderer).join('');
+            if (archive.length > ARCHIVE_LIMIT) {
+                archiveHtml += `<li><button class="toggle-list-btn" data-target-selector=".archive-item.hidden-item" data-container="archive-list" data-total="${archive.length}" data-show-text="Покажи всички" data-hide-text="Покажи по-малко">Покажи всички (${archive.length})</button></li>`;
+            }
+            alist.innerHTML = archiveHtml;
+        }
+    }
+    
+    function renderAuthor(author) {
+        const authorCard = document.getElementById('author-card');
+        if (!authorCard || !author) return;
+
+        const img = authorCard.querySelector('.author img');
+        const nameEl = authorCard.querySelector('.author strong');
+
+        if (img && author.avatar) {
+            // Зареждаме по-голяма снимка, ако е налична
+            img.src = author.avatar.replace(/\/s\d+(-c)?\//, '/s128-c/');
+            img.alt = `Автор – ${author.name}`;
+        }
+        if (nameEl && author.name) {
+            nameEl.textContent = `Автор: ${author.name}`;
+        }
+    }
+
+    function renderHome(page = 1, list = ALL_POSTS) {
       const app = document.getElementById('app');
-      const start = (page-1)*PAGE_SIZE;
-      const slice = list.slice(start, start+PAGE_SIZE);
-      app.innerHTML = slice.map(p=>`
+      const start = (page - 1) * PAGE_SIZE;
+      const slice = list.slice(start, start + PAGE_SIZE);
+      
+      const baseRoute = list === ALL_POSTS ? '#page' : location.hash.split('/').slice(0, 2).join('/');
+
+      app.innerHTML = slice.map(p => {
+        const imageUrl = p.cover ? p.cover.replace(/\/s\d+(-c)?\//, '/s400/') : '';
+        return `
         <article class="post-card">
-          ${p.cover ? `<img class="post-media" src="${p.cover}" alt="${escapeHtml(p.title)}" loading="lazy" />` : ''}
+          ${p.cover ? `
+            <div class="post-media-container">
+              <a href="#post/${p.id}" data-link>
+                <img class="post-media" src="${imageUrl}" alt="${escapeHtml(p.title)}" loading="lazy" />
+              </a>
+            </div>
+          ` : ''}
           <div class="post-body">
-            <h2><a href="#post/${p.id}" data-link>${escapeHtml(p.title)}</a></h2>
-            <div class="meta">Публикувано: ${fmtDate(p.date)} · Теми: ${(p.tags||[]).map(t=>`<a href="#tag/${encodeURIComponent(t)}" data-link>${escapeHtml(t)}</a>`).join(', ') || '—'}</div>
-            <p>${escapeHtml(p.excerpt || toExcerpt(p.html))}</p>
-          </div>
-          <div class="post-actions">
-            ${shareButtons(p)}
-            <a class="chip" href="#post/${p.id}" data-link>Коментари</a>
-            <a class="chip" href="#post/${p.id}" data-link>Прочети цялата статия</a>
+            <div>
+              <h2><a href="#post/${p.id}" data-link>${escapeHtml(p.title)}</a></h2>
+              <div class="meta">${fmtDate(p.date)}</div>
+              <p>${p.excerpt}</p>
+            </div>
+            <div class="post-actions">
+              <div class="meta">
+                ${(p.tags || []).map(t => `<a href="#tag/${encodeURIComponent(t)}" data-link class="chip">${escapeHtml(t)}</a>`).join(' ')}
+              </div>
+              <a class="chip" href="#post/${p.id}" data-link>Прочети →</a>
+            </div>
           </div>
         </article>
-      `).join('') + renderPagination(page, Math.ceil(list.length/PAGE_SIZE));
+      `}).join('') + renderPagination(page, Math.ceil(list.length / PAGE_SIZE), baseRoute);
       window.scrollTo({top:0, behavior:'smooth'});
     }
 
-    function renderPagination(page, pages){
-      if (pages <= 1) return '';
-      const prev = page>1 ? `<a href="#page/${page-1}" data-link>← Предишни</a>` : '<span></span>';
-      const next = page<pages ? `<a href="#page/${page+1}" data-link>Следващи →</a>` : '<span></span>';
-      const nums = Array.from({length: pages}, (_,i)=>{
-        const n = i+1;
-        return `<a href="#page/${n}" data-link ${n===page? 'aria-current="page"':''}>${n}</a>`;
-      }).join('');
-      return `<nav class="pagination" aria-label="Навигация между страници">
-        ${prev}
-        <div class="pages">${nums}</div>
-        ${next}
-      </nav>`;
+    function renderPagination(page, pages, baseRoute = '#page') {
+        if (pages <= 1) return '';
+
+        const prev = page > 1 ? `<a href="${baseRoute}/${page - 1}" data-link>← Предишни</a>` : '<span></span>';
+        const next = page < pages ? `<a href="${baseRoute}/${page + 1}" data-link>Следващи →</a>` : '<span></span>';
+
+        const maxVisibleButtons = 7;
+        let pageNumbers = [];
+
+        if (pages <= maxVisibleButtons) {
+            for (let i = 1; i <= pages; i++) {
+                pageNumbers.push(i);
+            }
+        } else {
+            pageNumbers.push(1);
+            let start = Math.max(2, page - 2);
+            let end = Math.min(pages - 1, page + 2);
+
+            if (page <= 4) {
+                start = 2;
+                end = 5;
+            }
+
+            if (page >= pages - 3) {
+                start = pages - 4;
+                end = pages - 1;
+            }
+
+            if (start > 2) {
+                pageNumbers.push('...');
+            }
+
+            for (let i = start; i <= end; i++) {
+                pageNumbers.push(i);
+            }
+
+            if (end < pages - 1) {
+                pageNumbers.push('...');
+            }
+
+            pageNumbers.push(pages);
+        }
+
+        const nums = pageNumbers.map(num => {
+            if (num === '...') {
+                return `<span class="muted">...</span>`;
+            }
+            return `<a href="${baseRoute}/${num}" data-link ${num === page ? 'aria-current="page"' : ''}>${num}</a>`;
+        }).join('');
+
+        return `<nav class="pagination" aria-label="Навигация между страници">
+            ${prev}
+            <div class="pages">${nums}</div>
+            ${next}
+        </nav>`;
     }
 
-    /** Единична статия */
-    function renderPost(id){
+    function renderPost(id) {
       const app = document.getElementById('app');
-      const p = POSTS.find(x=> String(x.id) === String(id));
+      const p = ALL_POSTS.find(x=> String(x.id) === String(id));
       if(!p){ app.innerHTML = `<p>Статията не е намерена.</p>`; return; }
+      const imageUrl = p.cover ? p.cover.replace(/\/s\d+(-c)?\//, '/s1600/') : '';
+
       app.innerHTML = `
         <article class="single">
-          ${p.cover ? `<img class="hero" src="${p.cover}" alt="${escapeHtml(p.title)}" />` : ''}
+          ${p.cover ? `<img class="hero" src="${imageUrl}" alt="${escapeHtml(p.title)}" />` : ''}
           <div class="wrap">
             <a class="back-link" href="#" data-link>← Към началото</a>
-            <h2>${escapeHtml(p.title)}</h2>
+            <h1>${escapeHtml(p.title)}</h1>
             <div class="meta">Публикувано: ${fmtDate(p.date)} · Теми: ${(p.tags||[]).map(t=>`<a href="#tag/${encodeURIComponent(t)}" data-link>${escapeHtml(t)}</a>`).join(', ') || '—'}</div>
             <div class="content">${p.html}</div>
             <div class="post-actions" style="padding-left:0">
               ${shareButtons(p)}
             </div>
-
             <section class="comments" aria-labelledby="comments-h">
               <h3 id="comments-h">Коментари</h3>
               <div id="comments-list"></div>
-              <form id="comment-form" style="margin-top:10px">
-                <label for="cname">Име</label><br>
-                <input id="cname" name="name" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px"/><br><br>
-                <label for="cbody">Коментар</label><br>
-                <textarea id="cbody" name="body" required rows="4" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px"></textarea><br>
-                <button class="chip" type="submit">Публикувай</button>
-              </form>
-              <div style="margin-top:8px">
-                <a class="chip" href="#" data-link>← Към главния изглед</a>
-              </div>
             </section>
           </div>
         </article>
       `;
-      renderComments(id);
-      const form = document.getElementById('comment-form');
-      form.addEventListener('submit', (e)=>{
-        e.preventDefault();
-        const name = form.querySelector('#cname').value.trim();
-        const body = form.querySelector('#cbody').value.trim();
-        if(!name || !body) return;
-        const item = { name, body, dt: new Date().toISOString() };
-        const key = `comments_${id}`;
-        const arr = JSON.parse(localStorage.getItem(key) || '[]');
-        arr.push(item);
-        localStorage.setItem(key, JSON.stringify(arr));
-        form.reset();
-        renderComments(id);
-      });
       window.scrollTo({top:0, behavior:'smooth'});
     }
 
-    /** Коментари (localStorage; демо) */
-    function renderComments(id){
-      const wrap = document.getElementById('comments-list');
-      const key = `comments_${id}`;
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      if(arr.length===0){ wrap.innerHTML = `<p class="muted">Все още няма коментари. Бъдете първи.</p>`; return; }
-      wrap.innerHTML = arr.slice().reverse().map(c=>`
-        <div class="comment">
-          <strong>${escapeHtml(c.name)}</strong>
-          <small> · ${new Date(c.dt).toLocaleString('bg-BG')}</small>
-          <p>${escapeHtml(c.body).replace(/\n/g,'<br>')}</p>
-        </div>
-      `).join('');
+    function renderByTag(tag, page = 1) {
+      const list = ALL_POSTS.filter(p => (p.tags || []).map(t => t.toLowerCase()).includes(tag.toLowerCase()));
+      const app = document.getElementById('app');
+      if (list.length === 0) {
+        app.innerHTML = `<p>Няма публикации с тема „${escapeHtml(tag)}“.</p>`;
+        return;
+      }
+      app.innerHTML = `<h2>Тема: ${escapeHtml(tag)}</h2>`;
+      renderHome(page, list);
     }
 
-    /** Споделяне */
-    function shareButtons(p){
-      const url = location.origin + location.pathname + `#post/${p.id}`;
+    function renderArchive(ym, page = 1) {
+      const list = ALL_POSTS.filter(p => p.date.startsWith(ym));
+      const d = new Date(ym + '-01T12:00:00Z');
+      const label = d.toLocaleDateString('bg-BG', { month: 'long', year: 'numeric' });
+      const app = document.getElementById('app');
+      app.innerHTML = `<h2>Архив: ${label}</h2>`;
+      renderHome(page, list);
+    }
+
+    /**
+     * ==============================================
+     * ПОМОЩНИ ФУНКЦИИ И МАРШРУТИЗАЦИЯ
+     * ==============================================
+     */
+
+    function router() {
+      const h = location.hash.replace(/^#/, '');
+      document.getElementById('app').setAttribute('aria-busy', 'true');
+
+      if (!h || h === 'topics' || h === 'archive' || h === 'contact') {
+        renderHome(1, ALL_POSTS);
+      } else if (h.startsWith('post/')) {
+        const id = h.split('/')[1];
+        renderPost(id);
+      } else if (h.startsWith('page/')) {
+        const n = Math.max(1, parseInt(h.split('/')[1] || '1', 10));
+        renderHome(n, ALL_POSTS);
+      } else if (h.startsWith('tag/')) {
+        const parts = h.split('/');
+        const tag = decodeURIComponent(parts[1]);
+        const page = Math.max(1, parseInt(parts[2] || '1', 10));
+        renderByTag(tag, page);
+      } else if (h.startsWith('archive/')) {
+        const parts = h.split('/');
+        const ym = parts[1];
+        const page = Math.max(1, parseInt(parts[2] || '1', 10));
+        renderArchive(ym, page);
+      } else {
+        renderHome(1, ALL_POSTS);
+      }
+      document.getElementById('app').setAttribute('aria-busy', 'false');
+    }
+
+    function shareButtons(p) {
+      const url = p.url || (location.origin + location.pathname + `#post/${p.id}`);
       const title = encodeURIComponent(p.title);
       const u = encodeURIComponent(url);
       const fb = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
@@ -538,72 +679,68 @@
         <a class="chip" href="${mail}">Имейл</a>`;
     }
 
-    async function shareNative(title, url){
-      try{
-        if(navigator.share){ await navigator.share({ title, url }); }
-        else{ alert('Използвайте бутоните за социални мрежи.'); }
-      }catch(e){ /* отказано */ }
+    async function shareNative(title, url) {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title, url });
+        } else {
+          alert('Функцията за споделяне не се поддържа от този браузър. Моля, използвайте бутоните за социални мрежи.');
+        }
+      } catch (e) { /* Потребителят е отказал споделянето */ }
     }
 
-    /** Филтър по таг */
-    function renderByTag(tag){
-      const list = POSTS.filter(p=> (p.tags||[]).includes(tag));
-      const app = document.getElementById('app');
-      if(list.length===0){ app.innerHTML = `<p>Няма публикации с тема „${escapeHtml(tag)}“.</p>`; return; }
-      app.innerHTML = `<h2>Тема: ${escapeHtml(tag)}</h2>`;
-      renderHome(1, list);
+    function escapeHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/[&<>()"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '(': '&#40;', ')': '&#41;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function escapeQuotes(s) {
+        if (!s) return '';
+        return String(s).replace(/["']/g, m => ({'"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    /** Изглед „Архив“ – по месец */
-    function renderArchive(ym){
-      const list = POSTS.filter(p=> p.date.startsWith(ym));
-      const d = new Date(ym + '-01T00:00:00');
-      const label = d.toLocaleDateString('bg-BG', { month:'long', year:'numeric' });
-      const app = document.getElementById('app');
-      app.innerHTML = `<h2>Архив: ${label}</h2>`;
-      renderHome(1, list);
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      init();
+      window.addEventListener('hashchange', router);
+      
+      document.getElementById('sidebar').addEventListener('click', e => {
+          if (e.target.classList.contains('toggle-list-btn')) {
+              const btn = e.target;
+              const containerId = btn.dataset.container;
+              const container = document.getElementById(containerId);
+              const targetSelector = btn.dataset.targetSelector;
 
-    /** Проста маршрутизация (hash) */
-    function router(){
-      const h = location.hash.replace(/^#/, '');
-      document.getElementById('app').setAttribute('aria-busy','true');
-      // #post/ID | #page/N | #tag/NAME | #archive/YYYY-MM | празно
-      if(!h || h==='topics' || h==='archive' || h==='contact'){
-        // за #topics/#archive/#contact – просто показваме home + потребителят може да навигира от ляво
-        renderHome(1, POSTS);
-      } else if(h.startsWith('post/')){
-        const id = h.split('/')[1];
-        renderPost(id);
-      } else if(h.startsWith('page/')){
-        const n = Math.max(1, parseInt(h.split('/')[1]||'1',10));
-        renderHome(n, POSTS);
-      } else if(h.startsWith('tag/')){
-        const tag = decodeURIComponent(h.split('/').slice(1).join('/'));
-        renderByTag(tag);
-      } else if(h.startsWith('archive/')){
-        const ym = h.split('/')[1];
-        renderArchive(ym);
-      } else {
-        renderHome(1, POSTS);
-      }
-      document.getElementById('app').setAttribute('aria-busy','false');
-    }
+              if (container && targetSelector) {
+                  const itemsToToggle = container.querySelectorAll(targetSelector);
+                  let isNowVisible;
 
-    /** Escape помощници */
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, m=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
-    }
-    function escapeQuotes(s){
-      return String(s).replace(/["']/g, m=> ({'"':'&quot;','\'':'&#39;'}[m]));
-    }
+                  itemsToToggle.forEach(item => {
+                      const isHidden = item.style.display === 'none';
+                      item.style.display = isHidden ? '' : 'none';
+                      if (isNowVisible === undefined) {
+                          isNowVisible = isHidden;
+                      }
+                  });
 
-    // Инициализация
-    const sorted = POSTS.slice().sort((a,b)=> b.date.localeCompare(a.date));
-    renderSidebar(sorted);
-    window.addEventListener('hashchange', router);
-    router();
+                  if (isNowVisible !== undefined) {
+                      btn.textContent = isNowVisible
+                          ? btn.dataset.hideText
+                          : `${btn.dataset.showText} (${btn.dataset.total})`;
+                  }
+              }
+          }
+      });
 
+      document.body.addEventListener('click', e => {
+        const link = e.target.closest('a[data-link]');
+        if (link) {
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          if(location.hash !== href) {
+            location.hash = href;
+          }
+        }
+      });
+    });
   </script>
 </body>
 </html>
