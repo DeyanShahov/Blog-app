@@ -298,7 +298,7 @@
     <h2>Лично творчество през призмата на собствената ми психология.</h2>
     <p>Обичам да пиша. В писанията си съм истинска и няма нужда да следвам ритъма на фалша и ежедневния театър.</p>
     <nav class="secondary-nav" aria-label="Допълнителна навигация">
-      <a href="#contact">Контакти</a>
+      <a href="#view/contact" data-link>Контакти</a>
       <a href="#video-messages">Видео Послания</a>
       <a href="#zumba-steps">Zumba Стъпки</a>
       <a href="#one-more">Здраве с One More International</a>
@@ -339,7 +339,7 @@
           <div class="author">
             <img src="https://picsum.photos/200?random=3" alt="Автор – профилна снимка" />
             <div>
-              <strong>Автор: Иван Петров</strong><br />
+              <strong>Автор: Stranded</strong><br />
               <small>I am a blogger, Zumba lover, wine admirer, mom, free-spirited, and a thinking woman.
                 <a href="https://www.youtube.com/channel/UCkJwJyPNLu7zMseDETu7TJw" target="_blank" rel="noopener">YouTube</a>
               </small>           
@@ -364,7 +364,7 @@
     const PAGE_SIZE = 5;
     let ALL_POSTS = []; // Глобален кеш за всички публикации
 
-    const BLOGGER_URL = "https://lichna-prizma.blogspot.com/"; /// "https://www.lichna-prizma.eu/"; 
+    const BLOGGER_URL = "https://www.lichna-prizma.eu/";  //"https://lichna-prizma.blogspot.com/";
 
     /**
      * ==============================================
@@ -679,6 +679,61 @@
       renderHome(page, list);
     }
 
+    function renderStaticPage(pageName) {
+        const app = document.getElementById('app');
+        app.innerHTML = `<p>Зареждане...</p>`;
+
+        // Карта на имената на страниците към техните пътища в Blogger
+        const pagePaths = {
+            'contact': '/p/blog-page.html'
+        };
+
+        const path = pagePaths[pageName];
+        if (!path) {
+            app.innerHTML = `<p>Страницата не е намерена.</p>`;
+            return;
+        }
+
+        const callbackName = 'jsonpPageCallback' + Date.now();
+        const script = document.createElement('script');
+
+        window[callbackName] = (json) => {
+            if (!json.feed || !json.feed.entry || json.feed.entry.length === 0) {
+                console.error("Грешен формат на JSON отговора за страница", json);
+                app.innerHTML = `<p>Възникна грешка при зареждане на съдържанието или страницата е празна.</p>`;
+                delete window[callbackName];
+                document.head.removeChild(script);
+                return;
+            }
+
+            const page = json.feed.entry[0]; // Взимаме първия резултат
+            const title = page.title.$t;
+            const content = page.content ? DOMPurify.sanitize(page.content.$t) : '';
+
+            app.innerHTML = `
+                <article class="single">
+                  <div class="wrap">
+                    <h1>${escapeHtml(title)}</h1>
+                    <div class="content">${content}</div>
+                  </div>
+                </article>
+            `;
+            window.scrollTo({top:0, behavior:'smooth'});
+
+            delete window[callbackName];
+            document.head.removeChild(script);
+        };
+
+        script.src = `${BLOGGER_URL}/feeds/pages/default?path=${path}&alt=json-in-script&callback=${callbackName}`;
+        script.onerror = () => {
+            app.innerHTML = `<p>Възникна грешка при зареждане на съдържанието.</p>`;
+            delete window[callbackName];
+            document.head.removeChild(script);
+        };
+
+        document.head.appendChild(script);
+    }
+
     /**
      * ==============================================
      * ПОМОЩНИ ФУНКЦИИ И МАРШРУТИЗАЦИЯ
@@ -697,6 +752,9 @@
       } else if (h.startsWith('page/')) {
         const n = Math.max(1, parseInt(h.split('/')[1] || '1', 10));
         renderHome(n, ALL_POSTS);
+      } else if (h.startsWith('view/')) {
+        const pageName = h.split('/')[1];
+        renderStaticPage(pageName);
       } else if (h.startsWith('tag/')) {
         const parts = h.split('/');
         const tag = decodeURIComponent(parts[1]);
