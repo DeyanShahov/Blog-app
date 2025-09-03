@@ -274,6 +274,27 @@
       border-color: var(--border);
       text-decoration: none;
     }
+    .external-links-bar {
+        text-align: center;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .external-links-bar a {
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: var(--accent);
+        border: 1px solid transparent;
+        font-size: .95rem;
+    }
+    .external-links-bar a:hover {
+        background: var(--bg);
+        border-color: var(--border);
+        text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -299,13 +320,16 @@
     <p>Обичам да пиша. В писанията си съм истинска и няма нужда да следвам ритъма на фалша и ежедневния театър.</p>
     <nav class="secondary-nav" aria-label="Допълнителна навигация">
       <a href="#view/contact" data-link>Контакти</a>
-      <a href="#video-messages">Видео Послания</a>
-      <a href="#zumba-steps">Zumba Стъпки</a>
-      <a href="#one-more">Здраве с One More International</a>
-      <a href="#books">Книги</a>
-      <a href="#more">Още…</a>
+      <a href="#view/video-messages" data-link>Видео Послания</a>
+      <a href="#view/zumba-steps" data-link>Zumba Стъпки</a>
+      <a href="#view/one-more" data-link>Здраве с One More International</a>
+      <a href="#view/poetry" data-link>Публикувана поезия</a>
     </nav>
   </section>
+
+  <div class="container external-links-bar">
+      <a href="https://www.amazon.com/stores/Victoria-Mineva/author/B00KJWTK8M?ref=ap_rdr&isDramIntegrated=true&shoppingPortalEnabled=true" target="_blank" rel="noopener">Моите книги в Amazon</a>
+  </div>
 
   <div class="container layout">
     <!-- Лявата вертикална секция -->
@@ -411,7 +435,7 @@
               title: entry.title.$t,
               date: entry.published.$t.slice(0, 10),
               tags: (entry.category || []).map(c => c.term),
-              html: entry.content ? DOMPurify.sanitize(entry.content.$t) : '',
+              html: entry.content ? DOMPurify.sanitize(entry.content.$t, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'src', 'width', 'height', 'title', 'data-thumbnail-src', 'allowtransparency', 'referrerpolicy'] }) : '',
               cover: cover,
               excerpt: toExcerpt(entry.content?.$t, 150),
               url: url
@@ -679,17 +703,21 @@
       renderHome(page, list);
     }
 
-    function renderStaticPage(pageName) {
+    function renderPageByPath(pageName) {
         const app = document.getElementById('app');
         app.innerHTML = `<p>Зареждане...</p>`;
 
         // Карта на имената на страниците към техните пътища в Blogger
-        const pagePaths = {
-            'contact': '/p/blog-page.html'
+        const pageConfigs = {
+            'contact': { path: '/p/blog-page.html', feed: 'pages' },
+            'zumba-steps': { path: '/2000/08/blog-post_78.html', feed: 'posts' },
+            'video-messages': { path: '/2000/08/blog-post_30.html', feed: 'posts' },
+            'one-more': { path: '/2000/08/one-more-international.html', feed: 'posts' },
+            'poetry': { path: '/2000/08/blog-post_54.html', feed: 'posts' }
         };
 
-        const path = pagePaths[pageName];
-        if (!path) {
+        const config = pageConfigs[pageName];
+        if (!config) {
             app.innerHTML = `<p>Страницата не е намерена.</p>`;
             return;
         }
@@ -708,7 +736,7 @@
 
             const page = json.feed.entry[0]; // Взимаме първия резултат
             const title = page.title.$t;
-            const content = page.content ? DOMPurify.sanitize(page.content.$t) : '';
+            const content = page.content ? DOMPurify.sanitize(page.content.$t, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'src', 'width', 'height', 'title', 'data-thumbnail-src', 'allowtransparency', 'referrerpolicy'] }) : '';
 
             app.innerHTML = `
                 <article class="single">
@@ -724,7 +752,7 @@
             document.head.removeChild(script);
         };
 
-        script.src = `${BLOGGER_URL}/feeds/pages/default?path=${path}&alt=json-in-script&callback=${callbackName}`;
+        script.src = `${BLOGGER_URL}/feeds/${config.feed}/default?path=${config.path}&alt=json-in-script&callback=${callbackName}`;
         script.onerror = () => {
             app.innerHTML = `<p>Възникна грешка при зареждане на съдържанието.</p>`;
             delete window[callbackName];
@@ -754,7 +782,7 @@
         renderHome(n, ALL_POSTS);
       } else if (h.startsWith('view/')) {
         const pageName = h.split('/')[1];
-        renderStaticPage(pageName);
+        renderPageByPath(pageName);
       } else if (h.startsWith('tag/')) {
         const parts = h.split('/');
         const tag = decodeURIComponent(parts[1]);
@@ -837,14 +865,17 @@
       });
 
       document.body.addEventListener('click', e => {
-        const link = e.target.closest('a[data-link]');
-        if (link) {
+        const link = e.target.closest('a'); // Find ANY clicked anchor
+        
+        // If a link was clicked AND it has the data-link attribute, handle as a route.
+        if (link && link.hasAttribute('data-link')) {
           e.preventDefault();
           const href = link.getAttribute('href');
-          if(location.hash !== href) {
+          if (href && location.hash !== href) {
             location.hash = href;
           }
         }
+        // Otherwise, do nothing and let the browser handle the click normally.
       });
     });
   </script>
